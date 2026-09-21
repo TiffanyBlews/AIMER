@@ -1,0 +1,62 @@
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      # Host disk is nearly full; disable watermark so single-node demo can allocate shards
+      - cluster.routing.allocation.disk.threshold_enabled=false
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200 >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+
+  backend:
+    build: ./backend
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      CARE_ES_URL: http://elasticsearch:9200
+      CARE_ES_INDEX: memes
+      CARE_DEVICE: cpu
+      CARE_AUTO_INDEX: "1"
+      CARE_CLIP_CHECKPOINT: /models/clip_douban.pt
+      CARE_IMAGE_PROJECTION_PATH: /models/image_proj_ridge_l1.pt
+      CARE_FEATURE_CACHE_PATH: /models/test_cache.pt
+      CARE_METADATA_PATH: /data/metadata.json
+      CARE_IMAGE_DIR: /data/images
+      # OpenAI CLIP download cache (ViT-B/32 base weights, overwritten by our checkpoint)
+      TORCH_HOME: /cache/torch
+    volumes:
+      # Mount real files (symlinks under ./models and ./data/images may not resolve in bind mounts)
+      - ../archive/clip_douban/clip_douban.pt:/models/clip_douban.pt:ro
+      - ../autoresearch/autoresearch_cache_douban/image_proj_ridge_l1.pt:/models/image_proj_ridge_l1.pt:ro
+      - ../autoresearch/autoresearch_cache_douban/test_cache.pt:/models/test_cache.pt:ro
+      - ./data/metadata.json:/data/metadata.json:ro
+      - ../douban_data/image:/data/images:ro
+      - torch_cache:/cache/torch
+    ports:
+      - "8010:8000"
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+volumes:
+  es_data:
+  torch_cache:

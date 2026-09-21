@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.env
+.DS_Store
+
+# Local demo assets and absolute-path symlinks from the development machine
+data/
+models/

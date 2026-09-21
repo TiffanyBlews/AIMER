@@ -1,0 +1,21 @@
+# Accelerate 配置文件 - DDP (Data Distributed Parallel) 模式
+# 使用方式: accelerate launch --config_file accelerate_config_ddp.yaml jina_m0_lora_train_ddp.py [args...]
+
+compute_environment: LOCAL_MACHINE
+debug: false
+distributed_type: MULTI_GPU
+downcast_bf16: 'no'
+enable_cpu_affinity: false
+gpu_ids: all  # 使用所有可用 GPU，也可以指定如 '0,1,2,3'
+machine_rank: 0
+main_training_function: main
+mixed_precision: bf16  # 可选: no, fp16, bf16
+num_machines: 1
+num_processes: 2  # 设置为你的 GPU 数量
+rdzv_backend: static
+same_network: true
+tpu_env: []
+tpu_use_cluster: false
+tpu_use_sudo: false
+use_cpu: false
+
